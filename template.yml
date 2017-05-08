@@ -1,0 +1,219 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Provision and setup PostgreSQL RDS and a Lambda function for initialising the urlcheck database schema
+
+Parameters: 
+
+  DBInstanceMasterUsernameParameter: 
+    Type: String
+    Default: username
+    Description: Enter db instance master username. Default is MasterUsername.
+
+  DBInstanceMasterPasswordParameter: 
+    Type: String
+    Default: password
+    Description: Enter db instance master password. Default is password.
+
+Resources:
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: 60.1.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: urlcheck-database-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: urlcheck-database-igw
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      InternetGatewayId:
+        Ref: InternetGateway
+      VpcId: 
+        Ref: VPC
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: Name
+          Value: urlcheck-database-rt
+
+  Route:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+
+  SubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock: 60.1.1.0/24
+      AvailabilityZone: eu-west-1a
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: urlcheck-database-subnet-a
+
+  SubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock: 60.1.2.0/24
+      AvailabilityZone: eu-west-1b
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: urlcheck-database-subnet-b
+
+  SubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock: 60.1.3.0/24
+      AvailabilityZone: eu-west-1c
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: urlcheck-database-subnet-c
+
+  SubnetRouteTableAssociationA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: SubnetA
+      RouteTableId:
+        Ref: RouteTable
+
+  SubnetRouteTableAssociationB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: SubnetB
+      RouteTableId:
+        Ref: RouteTable
+
+  SubnetRouteTableAssociationC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: SubnetC
+      RouteTableId:
+        Ref: RouteTable
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: urlcheck-database-subnet-group
+      SubnetIds:
+        - Ref: SubnetA
+        - Ref: SubnetB
+        - Ref: SubnetC
+      Tags:
+      - Key: Name
+        Value: urlcheck-database-subnet-group
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow all tcp
+      VpcId:
+        Ref: VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 9999
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 9999
+          CidrIp: 0.0.0.0/0
+      Tags:
+      - Key: Name
+        Value: urlcheck-database-sg
+
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBName: urlcheck
+      DBInstanceIdentifier: urlcheck
+      AllocatedStorage: 10
+      DBInstanceClass: db.t2.micro
+      Engine: postgres
+      PubliclyAccessible : true
+      AvailabilityZone: eu-west-1a
+      VPCSecurityGroups:
+        - Ref: InstanceSecurityGroup 
+      DBSubnetGroupName:
+        Ref: DBSubnetGroup
+      MasterUsername:
+        Ref: DBInstanceMasterUsernameParameter
+      MasterUserPassword:
+        Ref: DBInstanceMasterPasswordParameter
+      Tags:
+        - Key: Name
+          Value: urlcheck-database
+
+  LambdaExecutionRole: 
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Effect: Allow
+            Principal: 
+              Service: 
+                - lambda.amazonaws.com
+            Action: 
+              - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  FunctionCreateSchema:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: urlcheck-database-create-schema
+      Handler: index.createSchema
+      Role: 
+        Fn::GetAtt: 
+          - LambdaExecutionRole
+          - Arn
+      Code: 
+        S3Bucket: urlcheck-database
+        S3Key: deploy.zip
+      Runtime: nodejs4.3
+      MemorySize: 128
+      Timeout: 10
+      Environment:
+        Variables:
+          DATABASE_URL:
+            Fn::Join:
+              - ''
+              - - 'postgres://'
+                - Ref: DBInstanceMasterUsernameParameter
+                - ':'
+                - Ref: DBInstanceMasterPasswordParameter
+                - '@'
+                - Fn::GetAtt: 
+                  - DBInstance
+                  - Endpoint.Address
+                - ':5432/urlcheck'
