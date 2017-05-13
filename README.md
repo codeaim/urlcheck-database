@@ -40,7 +40,7 @@ npm config set urlcheck-database:database-username=<database-username>
 npm config set urlcheck-database:database-password=<database-password>
 ```
 
-Produce deployment package. Upload deployment package & AWS CloudFormation template to AWS S3 bucket. Create AWS CloudFormation stack, wait for completion and invoke Lambda to create database schema.
+Produce deployment package. Upload deployment package & AWS CloudFormation template to AWS S3 bucket. Create AWS CloudFormation stack, wait for completion and invoke Lambda to create database schema
 ```bash
 npm run create
 ```
