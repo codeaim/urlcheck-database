@@ -1,14 +1,15 @@
 {
   "name": "urlcheck-database",
   "config": {
-    "database-username": "",
-    "database-password": ""
+    "database_username": "",
+    "database_password": ""
   },
   "scripts": {
-    "update-stack": "aws cloudformation update-stack --stack-name urlcheck-database --template-url https://s3.amazonaws.com/urlcheck-database/template.yml --capabilities CAPABILITY_IAM --parameters ParameterKey=DBInstanceMasterUsernameParameter,ParameterValue=$npm_package_config_database-username ParameterKey=DBInstanceMasterPasswordParameter,ParameterValue=$npm_package_config_database-password && aws cloudformation wait stack-update-complete --stack-name urlcheck-database && aws lambda invoke --function-name urlcheck-database-create-schema",
-    "create-stack": "aws cloudformation create-stack --stack-name urlcheck-database --template-url https://s3.amazonaws.com/urlcheck-database/template.yml --capabilities CAPABILITY_IAM --parameters ParameterKey=DBInstanceMasterUsernameParameter,ParameterValue=$npm_package_config_database-username ParameterKey=DBInstanceMasterPasswordParameter,ParameterValue=$npm_package_config_database-password && aws cloudformation wait stack-create-complete --stack-name urlcheck-database && aws lambda invoke --function-name urlcheck-database-create-schema",
+    "update-stack": "aws cloudformation update-stack --stack-name urlcheck-database --template-url https://s3.amazonaws.com/urlcheck-database/template.yml --capabilities CAPABILITY_IAM --parameters ParameterKey=DBInstanceMasterUsernameParameter,ParameterValue=$npm_package_config_database_username ParameterKey=DBInstanceMasterPasswordParameter,ParameterValue=$npm_package_config_database_password && aws cloudformation wait stack-update-complete --stack-name urlcheck-database && aws lambda invoke --function-name urlcheck-database-create-schema",
+    "create-stack": "aws cloudformation create-stack --stack-name urlcheck-database --template-url https://s3.amazonaws.com/urlcheck-database/template.yml --capabilities CAPABILITY_IAM --parameters ParameterKey=DBInstanceMasterUsernameParameter,ParameterValue=$npm_package_config_database_username ParameterKey=DBInstanceMasterPasswordParameter,ParameterValue=$npm_package_config_database_password && aws cloudformation wait stack-create-complete --stack-name urlcheck-database && aws lambda invoke --function-name urlcheck-database-create-schema",
     "upload-template": "aws s3 cp template.yml s3://urlcheck-database/template.yml",
     "upload-deploy": "zip -r deploy.zip index.js node_modules && aws s3 cp deploy.zip s3://urlcheck-database/deploy.zip",
+    "setup": "aws s3api create-bucket --bucket urlcheck-database --region eu-west-1 --create-bucket-configuration LocationConstraint=eu-west-1",
     "create": "npm run upload-deploy && npm run upload-template && npm run create-stack",
     "update": "npm run upload-deploy && npm run upload-template && npm run update-stack",
     "delete": "aws cloudformation delete-stack --stack-name urlcheck-database && aws cloudformation wait stack-delete-complete --stack-name urlcheck-database"

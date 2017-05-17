@@ -15,7 +15,7 @@ aws configure
 
 Create AWS S3 bucket
 ```bash
-aws s3api create-bucket --bucket urlcheck-database --region eu-west-1 --create-bucket-configuration LocationConstraint=eu-west-1
+npm run setup
 ```
 
 # Getting started
@@ -36,8 +36,8 @@ npm install
 
 Set deployment configuration with valid values
 ```bash
-npm config set urlcheck-database:database-username=<database-username>
-npm config set urlcheck-database:database-password=<database-password>
+npm config set urlcheck-database:database_username=<database_username>
+npm config set urlcheck-database:database_password=<database_password>
 ```
 
 Produce deployment package. Upload deployment package & AWS CloudFormation template to AWS S3 bucket. Create AWS CloudFormation stack, wait for completion and invoke Lambda to create database schema
