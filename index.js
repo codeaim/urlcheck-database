@@ -43,6 +43,19 @@ module.exports.createSchema = (event, context, callback) => {
           DELETE FROM response WHERE response.created < NOW() - INTERVAL '7 days';
           RETURN NULL;
         END; $$ LANGUAGE plpgsql;
+        
+        CREATE OR REPLACE FUNCTION reduce_user_credit()
+        RETURNS TRIGGER AS $$
+
+        BEGIN
+          IF NEW.refresh != OLD.refresh THEN
+            UPDATE "user"
+              SET credit = credit - 1
+            WHERE username = NEW.username
+              AND credit > 0;
+          END IF;
+          RETURN NULL;
+        END; $$ LANGUAGE plpgsql;
 
         CREATE TABLE IF NOT EXISTS "user" (
           username       VARCHAR(255) NOT NULL PRIMARY KEY,
@@ -104,8 +117,15 @@ module.exports.createSchema = (event, context, callback) => {
           BEFORE INSERT ON "check"
           FOR EACH ROW EXECUTE PROCEDURE unique_short_id();
           
-        DROP TRIGGER IF EXISTS response_delete_expired_responses
+        DROP TRIGGER IF EXISTS check_reduce_user_credit
           ON "check";
+          
+        CREATE TRIGGER check_reduce_user_credit
+          AFTER UPDATE ON "check"
+          FOR EACH ROW EXECUTE PROCEDURE reduce_user_credit();  
+          
+        DROP TRIGGER IF EXISTS response_delete_expired_responses
+          ON response;
           
         CREATE TRIGGER response_delete_expired_responses
           AFTER INSERT ON response
