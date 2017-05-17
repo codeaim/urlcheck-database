@@ -35,6 +35,14 @@ module.exports.createSchema = (event, context, callback) => {
 
           RETURN NEW;
         END; $$ LANGUAGE plpgsql;
+        
+        CREATE OR REPLACE FUNCTION delete_expired_responses()
+        RETURNS TRIGGER AS $$
+
+        BEGIN
+          DELETE FROM response WHERE response.created < NOW() - INTERVAL '7 days';
+          RETURN NULL;
+        END; $$ LANGUAGE plpgsql;
 
         CREATE TABLE IF NOT EXISTS "user" (
           username       VARCHAR(255) NOT NULL PRIMARY KEY,
@@ -95,6 +103,13 @@ module.exports.createSchema = (event, context, callback) => {
         CREATE TRIGGER check_generate_id
           BEFORE INSERT ON "check"
           FOR EACH ROW EXECUTE PROCEDURE unique_short_id();
+          
+        DROP TRIGGER IF EXISTS response_delete_expired_responses
+          ON "check";
+          
+        CREATE TRIGGER response_delete_expired_responses
+          AFTER INSERT ON response
+          EXECUTE PROCEDURE delete_expired_responses();
     `;
     
     client.connect(() => {
