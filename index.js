@@ -50,7 +50,8 @@ module.exports.createSchema = (event, context, callback) => {
         BEGIN
           IF NEW.refresh != OLD.refresh THEN
             UPDATE "user"
-              SET credit = credit - 1
+              SET credit = credit - 1,
+                  modified = NOW()
             WHERE username = NEW.username
               AND credit > 0;
           END IF;
