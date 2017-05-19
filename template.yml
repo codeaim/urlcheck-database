@@ -192,7 +192,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: urlcheck-database-create-schema
-      Handler: index.createSchema
+      Handler: src/createSchema.handler
       Role: 
         Fn::GetAtt: 
           - LambdaExecutionRole

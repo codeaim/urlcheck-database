@@ -2,7 +2,7 @@
 
 const pg = require('pg');
 
-module.exports.createSchema = (event, context, callback) => {
+module.exports.handler = (event, context, callback) => {
     const client = new pg.Client(process.env.DATABASE_URL);
     const sql = `
         CREATE EXTENSION IF NOT EXISTS "pgcrypto";
