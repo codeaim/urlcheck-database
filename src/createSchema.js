@@ -8,6 +8,7 @@ module.exports.handler = (event, context, callback) => {
         CREATE TABLE IF NOT EXISTS "user" (
           username       VARCHAR(255) NOT NULL PRIMARY KEY,
           email          VARCHAR(255) NOT NULL UNIQUE,
+          password       VARCHAR(2000)NOT NULL,
           admin          BOOLEAN      NOT NULL,
           created        TIMESTAMPZ   NOT NULL,
           modified       TIMESTAMPZ   NOT NULL,
