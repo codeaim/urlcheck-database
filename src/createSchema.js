@@ -8,7 +8,7 @@ module.exports.handler = (event, context, callback) => {
         CREATE TABLE IF NOT EXISTS "user" (
           username       VARCHAR(255) NOT NULL PRIMARY KEY,
           email          VARCHAR(255) NOT NULL UNIQUE,
-          password       VARCHAR(2000)NOT NULL,
+          password       VARCHAR(60)  NOT NULL,
           admin          BOOLEAN      NOT NULL,
           created        TIMESTAMPZ   NOT NULL,
           modified       TIMESTAMPZ   NOT NULL,
@@ -38,7 +38,7 @@ module.exports.handler = (event, context, callback) => {
     
         CREATE TABLE IF NOT EXISTS "change" (
           id          BIGSERIAL  NOT NULL PRIMARY KEY,
-          check_id    BIGINT     NOT NULL REFERENCES "check" (id) ON DELETE CASCADE,
+          check_id    VARCHAR(8) NOT NULL REFERENCES "check" (id) ON DELETE CASCADE,
           status      VARCHAR(4) NOT NULL CHECK (status IN ('UP', 'DOWN')),
           status_code INT        NOT NULL,
           created     TIMESTAMPZ NOT NULL
@@ -46,7 +46,7 @@ module.exports.handler = (event, context, callback) => {
     
         CREATE TABLE IF NOT EXISTS "response" (
           id       BIGSERIAL    NOT NULL PRIMARY KEY,
-          check_id BIGINT       NOT NULL REFERENCES "check" (id) ON DELETE CASCADE,
+          check_id VARCHAR(8)   NOT NULL REFERENCES "check" (id) ON DELETE CASCADE,
           duration INT          NOT NULL,
           region   VARCHAR(255) NULL,
           created  TIMESTAMPZ   NOT NULL
@@ -58,6 +58,8 @@ module.exports.handler = (event, context, callback) => {
           ON "change" (check_id);
         CREATE INDEX IF NOT EXISTS response_check_fkey
           ON "response" (check_id);
+        CREATE INDEX IF NOT EXISTS response_created_index
+          ON "response" (created);
 
         CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -131,6 +133,7 @@ module.exports.handler = (event, context, callback) => {
           
         CREATE TRIGGER response_delete_expired_responses
           AFTER INSERT ON response
+          FOR EACH STATEMENT
           EXECUTE PROCEDURE delete_expired_responses();
     `;
     
